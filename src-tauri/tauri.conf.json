@@ -2,12 +2,12 @@
   "$schema": "https://raw.githubusercontent.com/nicehash/tauri/dev/crates/tauri-config-schema/schema.json",
   "productName": "GAME++",
   "version": "0.1.0",
-  "identifier": "com.gamepp.app",
+  "identifier": "com.gamepp.desktop",
   "build": {
     "devUrl": "http://localhost:1420",
     "frontendDist": "dist",
-    "beforeDevCommand": "sh -c \"cd /Users/zay/Desktop/work-ml/GAME++ && npm run dev\"",
-    "beforeBuildCommand": "sh -c \"cd /Users/zay/Desktop/work-ml/GAME++ && npm run build\""
+    "beforeDevCommand": "npm run dev --prefix ./..",
+    "beforeBuildCommand": "npm run build --prefix ./.."
   },
   "app": {
     "withGlobalTauri": true,
