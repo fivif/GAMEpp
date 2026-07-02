@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicehash/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "GAME++",
+  "version": "0.1.0",
+  "identifier": "com.gamepp.app",
+  "build": {
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "dist",
+    "beforeDevCommand": "sh -c \"cd /Users/zay/Desktop/work-ml/GAME++ && npm run dev\"",
+    "beforeBuildCommand": "sh -c \"cd /Users/zay/Desktop/work-ml/GAME++ && npm run build\""
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "GAME++",
+        "width": 960,
+        "height": 640,
+        "minWidth": 800,
+        "minHeight": 560,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "fullscreen": false,
+        "resizable": true
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
+    },
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "targets": ["app", "dmg", "nsis", "msi"]
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  }
+}

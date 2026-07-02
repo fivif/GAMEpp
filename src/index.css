@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0a0a0b;
+    color: #e4e4e7;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #27272a;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.3);
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(20, 20, 24, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .card {
+    @apply bg-game-card rounded-xl border border-game-border transition-all duration-200;
+  }
+
+  .card:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .card-active {
+    @apply card border-game-accent/30 bg-game-accent/5;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.08);
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-game-accent hover:bg-game-accent-hover text-white rounded-lg
+           font-medium text-sm transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed
+           active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-game-hover hover:bg-game-border text-zinc-300 rounded-lg
+           font-medium text-sm transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 bg-[#0a0a0b] border border-game-border rounded-lg
+           text-sm text-zinc-200 placeholder:text-zinc-600
+           focus:outline-none focus:border-game-accent/50 focus:ring-1 focus:ring-game-accent/20
+           transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider;
+  }
+
+  .badge-green {
+    @apply badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+
+  .badge-yellow {
+    @apply badge bg-amber-500/10 text-amber-400 border border-amber-500/20;
+  }
+
+  .badge-red {
+    @apply badge bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+
+  .badge-muted {
+    @apply badge bg-zinc-500/10 text-zinc-500 border border-zinc-500/20;
+  }
+}
