@@ -431,13 +431,8 @@ export default function App() {
   const connected = useAppStore(s => s.connected);
   const currentNode = useAppStore(s => s.currentNode);
   const subscriptionUrl = useAppStore(s => s.subscriptionUrl);
-  const setSubscriptionUrl = useAppStore(s => s.setSubscriptionUrl);
-  const setNodes = useAppStore(s => s.setNodes);
   const selectedRegion = useAppStore(s => s.selectedRegion);
   const localGames = useAppStore(s => s.localGames);
-
-  const [subInput, setSubInput] = useState(subscriptionUrl);
-  const [fetching, setFetching] = useState(false);
 
   // Auto-save config when state changes
   useEffect(() => {
@@ -454,17 +449,6 @@ export default function App() {
     }, 1000);
     return () => clearTimeout(timer);
   }, [subscriptionUrl, selectedRegion, localGames]);
-
-  const handleFetchSub = async () => {
-    if (!subInput.trim()) return;
-    setFetching(true);
-    try {
-      const list = await invoke('fetch_subscription', { url: subInput.trim() });
-      setNodes(list as any[]);
-      setSubscriptionUrl(subInput.trim());
-    } catch (e) { alert('获取失败: ' + e); }
-    finally { setFetching(false); }
-  };
 
   return (
     <div className="h-screen flex flex-col bg-[#08080c] text-zinc-200 overflow-hidden">
