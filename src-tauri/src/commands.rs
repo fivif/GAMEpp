@@ -93,6 +93,8 @@ pub async fn start_proxy(
 
     let child = std::process::Command::new(&sb_path)
         .args(["run", "-c", config_path.to_str().unwrap()])
+        .env("ENABLE_DEPRECATED_LEGACY_DNS_SERVERS", "true")
+        .env("ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER", "true")
         .stdout(std::process::Stdio::null())
         .stderr(stderr)
         .spawn()

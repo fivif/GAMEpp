@@ -280,8 +280,10 @@ async function refreshLinks(){
       const badgeCls = expired ? 'badge-expired' : permanent ? 'badge-permanent' : 'badge-active';
       const statusText = expired ? '已过期' : permanent ? '永久有效' : '有效';
       const remainingText = expired ? '' : ' · 剩余 '+formatTime(l.remaining_seconds);
-      return '<tr style="animation-delay:'+(i*.03)+'s"><td>'+esc(l.name)+'</td><td>'+durationLabel(l.duration)+'</td><td><span class="badge '+badgeCls+'"><span class="badge-dot"></span>'+statusText+remainingText+'</span></td><td><span class="mono">'+esc(l.service_url)+'</span><span class="copy-link" onclick="copy(\''+l.service_url+'\')">⎘ 复制</span></td><td><button class="btn btn-danger btn-sm" onclick="deleteLink(\''+l.token+'\')">删除</button></td></tr>'
+      return '<tr style="animation-delay:'+(i*.03)+'s"><td>'+esc(l.name)+'</td><td>'+durationLabel(l.duration)+'</td><td><span class="badge '+badgeCls+'"><span class="badge-dot"></span>'+statusText+remainingText+'</span></td><td><span class="mono">'+esc(l.service_url)+'</span><span class="copy-link" data-copy="'+esc(l.service_url)+'">&#x238B; 复制</span></td><td><button class="btn btn-danger btn-sm" data-delete="'+esc(l.token)+'">删除</button></td></tr>'
     }).join('');
+    tbody.querySelectorAll('.copy-link').forEach(el => el.onclick = () => copy(el.dataset.copy));
+    tbody.querySelectorAll('[data-delete]').forEach(el => el.onclick = () => deleteLink(el.dataset.delete));
   }catch(e){}
 }
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}

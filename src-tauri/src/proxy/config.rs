@@ -10,36 +10,15 @@ pub fn generate_singbox_config(
 ) -> serde_json::Value {
     serde_json::json!({
         "log": {
-            "level": "info",
+            "level": "warn",
             "timestamp": true
-        },
-        "dns": {
-            "servers": [
-                {
-                    "tag": "remote",
-                    "address": "8.8.8.8",
-                    "detour": "proxy"
-                },
-                {
-                    "tag": "local",
-                    "address": "223.5.5.5",
-                    "detour": "direct"
-                }
-            ],
-            "rules": [
-                {
-                    "rule_set": "geosite-cn",
-                    "server": "local"
-                }
-            ]
         },
         "inbounds": [
             {
                 "type": "socks",
                 "tag": "socks-in",
                 "listen": "127.0.0.1",
-                "listen_port": socks_port,
-                "sniff": true
+                "listen_port": socks_port
             },
             {
                 "type": "http",
@@ -57,33 +36,9 @@ pub fn generate_singbox_config(
                 "uuid": node.uuid.as_str(),
                 "flow": "",
                 "transport": build_transport(node),
-                "tls": build_tls(node),
-                "multiplex": {
-                    "enabled": true,
-                    "protocol": "h2mux",
-                    "max_connections": 4,
-                    "min_streams": 2
-                }
-            },
-            {
-                "type": "direct",
-                "tag": "direct"
+                "tls": build_tls(node)
             }
-        ],
-        "route": {
-            "rules": [
-                {
-                    "rule_set": "geosite-cn",
-                    "outbound": "direct"
-                },
-                {
-                    "rule_set": "geoip-cn",
-                    "outbound": "direct"
-                }
-            ],
-            "auto_detect_interface": true,
-            "final": "proxy"
-        }
+        ]
     })
 }
 
