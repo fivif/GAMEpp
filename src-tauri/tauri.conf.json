@@ -43,6 +43,15 @@
       "icons/icon.ico"
     ],
     "resources": [],
+    "windows": {
+      "wix": {
+        "bannerPath": "icons/icon.ico",
+        "dialogImagePath": "icons/icon.ico"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    },
     "targets": ["app", "dmg", "nsis", "msi"]
   },
   "plugins": {
