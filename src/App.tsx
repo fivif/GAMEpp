@@ -67,25 +67,20 @@ function HomeView() {
     (async () => {
       // Load persisted config
       let savedUrl = '';
-      let savedRegion = 'HK';
-      let savedProcesses: string[] = [];
       try {
         const cfg = await invoke('load_persistent_config') as any;
         if (cfg?.subscription_url) { useAppStore.getState().setSubscriptionUrl(cfg.subscription_url); savedUrl = cfg.subscription_url; }
-        if (cfg?.last_region) { useAppStore.getState().setSelectedRegion(cfg.last_region); savedRegion = cfg.last_region; }
-        if (cfg?.custom_processes) savedProcesses = cfg.custom_processes;
+        if (cfg?.last_region) { useAppStore.getState().setSelectedRegion(cfg.last_region); }
+        if (cfg?.custom_processes) {
+          const saved: InstalledGame[] = (cfg.custom_processes as string[]).map(name => ({ name, exe_path: '', source: 'manual' }));
+          const current = useAppStore.getState().localGames;
+          setLocalGames([...saved, ...current.filter((g: InstalledGame) => g.source !== 'manual')]);
+        }
       } catch {}
 
       // Scan local games
       try { const games = await invoke('scan_installed_games'); setLocalGames(games as InstalledGame[]); } catch {}
       setScanDone(true);
-
-      // Restore saved custom processes
-      if (savedProcesses.length > 0) {
-        const saved: InstalledGame[] = savedProcesses.map(name => ({ name, exe_path: '', source: 'manual' }));
-        const current = useAppStore.getState().localGames;
-        setLocalGames([...saved, ...current.filter((g: InstalledGame) => g.source !== 'manual')]);
-      }
 
       // Auto-fetch subscription
       if (savedUrl) {
@@ -98,13 +93,7 @@ function HomeView() {
           const results = await invoke('test_latency', { nodes: list });
           useAppStore.getState().setNodes(results as any[]);
 
-          // Auto-select best node in saved region
-          const allNodes = results as any[];
-          const best = [...allNodes]
-            .filter((n: any) => n.region === savedRegion && n.latency_ms !== null)
-            .sort((a: any, b: any) => a.latency_ms - b.latency_ms)[0];
-
-          // Auto-select Steam but don't auto-connect
+          // Auto-select Steam
           useAppStore.getState().setSelectedGame({ name: 'Steam', exe_path: '', source: 'builtin' });
         } catch {}
       }
