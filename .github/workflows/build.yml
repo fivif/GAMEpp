@@ -28,7 +28,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'GAME++ v0.1.0'
+          releaseName: 'GAME++ ${{ github.ref_name }}'
           prerelease: false
           args: --target x86_64-pc-windows-msvc
 
@@ -51,5 +51,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'GAME++ v0.1.0'
+          releaseName: 'GAME++ ${{ github.ref_name }}'
           prerelease: false
