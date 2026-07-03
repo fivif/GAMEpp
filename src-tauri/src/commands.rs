@@ -266,15 +266,28 @@ fn find_singbox() -> Option<String> {
             #[cfg(not(target_os = "windows"))]
             let name = "sing-box";
 
-            // Check next to the exe (Windows) or in Resources (macOS .app)
+            // Check next to the exe
             let bundled = dir.join(name);
             if bundled.exists() { return Some(bundled.to_string_lossy().to_string()); }
 
-            // macOS: check ../Resources/ (inside .app bundle)
+            // Check ../ (for Tauri resources in dev mode)
+            if let Some(parent) = dir.parent() {
+                let parent_bundled = parent.join(name);
+                if parent_bundled.exists() { return Some(parent_bundled.to_string_lossy().to_string()); }
+            }
+
+            // macOS: check Resources/ inside .app bundle
             #[cfg(target_os = "macos")]
             {
                 let resources = dir.join("../Resources").join(name);
                 if resources.exists() { return Some(resources.to_string_lossy().to_string()); }
+            }
+
+            // Windows: check _up_ one level (for NSIS installer layout)
+            #[cfg(target_os = "windows")]
+            {
+                let up_one = dir.join("..").join(name).canonicalize().ok();
+                if let Some(ref p) = up_one { if p.exists() { return Some(p.to_string_lossy().to_string()); } }
             }
         }
     }
@@ -286,9 +299,10 @@ fn find_singbox() -> Option<String> {
 }
 
 fn singbox_download_guide() -> String {
+    let exe_dir = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_string_lossy().to_string())).unwrap_or_default();
     if cfg!(target_os = "windows") {
-        "sing-box not found.\nDownload: https://github.com/SagerNet/sing-box/releases\nPut sing-box.exe next to GAME++.exe".into()
+        format!("sing-box.exe not found.\nSearched: {}\nDownload: https://github.com/SagerNet/sing-box/releases\nPut sing-box.exe next to GAME++.exe", exe_dir)
     } else {
-        "sing-box not found.\nInstall: brew install sing-box".into()
+        format!("sing-box not found.\nSearched: {}\nInstall: brew install sing-box", exe_dir)
     }
 }
