@@ -42,9 +42,6 @@
       "icons/icon.png",
       "icons/icon.ico"
     ],
-    "resources": [
-      "bin/sing-box*"
-    ],
     "windows": {
       "wix": {
         "bannerPath": "icons/icon.ico",

@@ -254,55 +254,121 @@ pub async fn save_persistent_config(config: crate::proxy::config::AppConfig) -> 
     crate::proxy::config::save_config(&config).map_err(|e| e.to_string())
 }
 
-/// Try to find sing-box binary (PATH → bundled resource → system)
+/// Find sing-box or auto-download it
 fn find_singbox() -> Option<String> {
+    // 1. Check PATH
     if std::process::Command::new("sing-box").arg("version").output().is_ok() {
         return Some("sing-box".to_string());
     }
+
+    // 2. Check app data dir (where auto-download puts it)
+    let app_dir = singbox_app_dir();
+    #[cfg(target_os = "windows")]
+    let name = "sing-box.exe";
+    #[cfg(not(target_os = "windows"))]
+    let name = "sing-box";
+
+    let dest = app_dir.join(name);
+    if dest.exists() { return Some(dest.to_string_lossy().to_string()); }
+
+    // 3. Check next to exe
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
-            #[cfg(target_os = "windows")]
-            let name = "sing-box.exe";
-            #[cfg(not(target_os = "windows"))]
-            let name = "sing-box";
-
-            // Check next to the exe
             let bundled = dir.join(name);
             if bundled.exists() { return Some(bundled.to_string_lossy().to_string()); }
-
-            // Check ../ (for Tauri resources in dev mode)
-            if let Some(parent) = dir.parent() {
-                let parent_bundled = parent.join(name);
-                if parent_bundled.exists() { return Some(parent_bundled.to_string_lossy().to_string()); }
-            }
-
-            // macOS: check Resources/ inside .app bundle
-            #[cfg(target_os = "macos")]
-            {
-                let resources = dir.join("../Resources").join(name);
-                if resources.exists() { return Some(resources.to_string_lossy().to_string()); }
-            }
-
-            // Windows: check _up_ one level (for NSIS installer layout)
-            #[cfg(target_os = "windows")]
-            {
-                let up_one = dir.join("..").join(name).canonicalize().ok();
-                if let Some(ref p) = up_one { if p.exists() { return Some(p.to_string_lossy().to_string()); } }
-            }
         }
     }
+
+    // 4. macOS Homebrew
     #[cfg(target_os = "macos")]
     for p in ["/opt/homebrew/bin/sing-box", "/usr/local/bin/sing-box"] {
         if std::path::Path::new(p).exists() { return Some(p.to_string()); }
     }
+
+    // 5. Auto-download
+    if let Ok(path) = auto_download_singbox(&dest) {
+        return Some(path);
+    }
+
     None
 }
 
-fn singbox_download_guide() -> String {
-    let exe_dir = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_string_lossy().to_string())).unwrap_or_default();
-    if cfg!(target_os = "windows") {
-        format!("sing-box.exe not found.\nSearched: {}\nDownload: https://github.com/SagerNet/sing-box/releases\nPut sing-box.exe next to GAME++.exe", exe_dir)
+fn singbox_app_dir() -> std::path::PathBuf {
+    let base = if cfg!(target_os = "windows") {
+        std::env::var("APPDATA").map(std::path::PathBuf::from).unwrap_or_else(|_| std::path::PathBuf::from("."))
+    } else if cfg!(target_os = "macos") {
+        std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join("Library/Application Support")).unwrap_or_else(|_| std::path::PathBuf::from("."))
     } else {
-        format!("sing-box not found.\nSearched: {}\nInstall: brew install sing-box", exe_dir)
+        std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".local/share")).unwrap_or_else(|_| std::path::PathBuf::from("."))
+    };
+    base.join("GAME++").join("bin")
+}
+
+fn auto_download_singbox(dest: &std::path::Path) -> Result<String, String> {
+    let parent = dest.parent().ok_or("no parent dir")?;
+    std::fs::create_dir_all(parent).map_err(|e| format!("mkdir: {}", e))?;
+
+    let url = if cfg!(target_os = "windows") {
+        "https://github.com/SagerNet/sing-box/releases/download/v1.13.14/sing-box-1.13.14-windows-amd64.zip"
+    } else if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") {
+        "https://github.com/SagerNet/sing-box/releases/download/v1.13.14/sing-box-1.13.14-darwin-arm64.tar.gz"
+    } else {
+        "https://github.com/SagerNet/sing-box/releases/download/v1.13.14/sing-box-1.13.14-darwin-amd64.tar.gz"
+    };
+
+    let tmp = std::env::temp_dir().join("gamepp-singbox-dl");
+    std::fs::create_dir_all(&tmp).ok();
+
+    let archive = if url.ends_with(".zip") {
+        let p = tmp.join("sing-box.zip");
+        download_file(url, &p)?;
+        p
+    } else {
+        let p = tmp.join("sing-box.tar.gz");
+        download_file(url, &p)?;
+        p
+    };
+
+    // Extract
+    if url.ends_with(".zip") {
+        let file = std::fs::File::open(&archive).map_err(|e| format!("open zip: {}", e))?;
+        let mut zip = zip::ZipArchive::new(file).map_err(|e| format!("zip: {}", e))?;
+        for i in 0..zip.len() {
+            let mut f = zip.by_index(i).map_err(|e| format!("zip entry: {}", e))?;
+            let fname = std::path::Path::new(f.name()).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if fname == "sing-box.exe" || fname == "sing-box" {
+                let mut out = std::fs::File::create(dest).map_err(|e| format!("create: {}", e))?;
+                std::io::copy(&mut f, &mut out).map_err(|e| format!("copy: {}", e))?;
+                break;
+            }
+        }
+    } else {
+        let f = std::fs::File::open(&archive).map_err(|e| format!("open tar: {}", e))?;
+        let gz = flate2::read::GzDecoder::new(f);
+        let mut tar = tar::Archive::new(gz);
+        for entry in tar.entries().map_err(|e| format!("tar: {}", e))? {
+            let mut entry = entry.map_err(|e| format!("entry: {}", e))?;
+            let path = entry.path().map_err(|e| format!("path: {}", e))?;
+            let fname = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if fname == "sing-box" || fname == "sing-box.exe" {
+                entry.unpack(dest).map_err(|e| format!("unpack: {}", e))?;
+                break;
+            }
+        }
     }
+
+    let _ = std::fs::remove_dir_all(&tmp);
+    #[cfg(unix)] { use std::os::unix::fs::PermissionsExt; let _ = std::fs::set_permissions(dest, PermissionsExt::from_mode(0o755)); }
+    Ok(dest.to_string_lossy().to_string())
+}
+
+fn download_file(url: &str, dest: &std::path::Path) -> Result<(), String> {
+    let resp = reqwest::blocking::get(url).map_err(|e| format!("download: {}", e))?;
+    let bytes = resp.bytes().map_err(|e| format!("read: {}", e))?;
+    std::fs::write(dest, &bytes).map_err(|e| format!("write: {}", e))?;
+    Ok(())
+}
+
+fn singbox_download_guide() -> String {
+    "Downloading sing-box... If this persists, check your network.".into()
 }
