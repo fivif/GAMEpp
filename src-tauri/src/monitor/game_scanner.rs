@@ -25,11 +25,46 @@ pub fn scan_installed_games() -> Vec<InstalledGame> {
     }
 
     #[cfg(target_os = "windows")]
-    for base in ["C:\\Program Files (x86)\\Steam\\steamapps\\common", "D:\\Steam\\steamapps\\common"] {
-        if let Ok(entries) = std::fs::read_dir(base) {
-            for entry in entries.flatten() {
-                let n = entry.file_name().to_string_lossy().to_string();
-                if !n.starts_with('.') { games.push(InstalledGame { name: n, exe_path: entry.path().to_string_lossy().to_string(), source: "steam".to_string() }); }
+    {
+        // Scan all drives A-Z for Steam library folders
+        for drive in 'C'..='Z' {
+            for pattern in [
+                format!("{}:\\Program Files (x86)\\Steam\\steamapps", drive),
+                format!("{}:\\Steam\\steamapps", drive),
+                format!("{}:\\SteamLibrary\\steamapps", drive),
+            ] {
+                let common = format!("{}\\common", pattern);
+                if let Ok(entries) = std::fs::read_dir(&common) {
+                    for entry in entries.flatten() {
+                        let n = entry.file_name().to_string_lossy().to_string();
+                        if !n.starts_with('.') && !n.to_lowercase().contains("steamworks") {
+                            games.push(InstalledGame { name: n, exe_path: entry.path().to_string_lossy().to_string(), source: "steam".to_string() });
+                        }
+                    }
+                }
+                // Also check libraryfolders.vdf for additional library paths
+                let vdf = format!("{}\\libraryfolders.vdf", pattern);
+                if let Ok(content) = std::fs::read_to_string(&vdf) {
+                    for line in content.lines() {
+                        if let Some(start) = line.find("\"path\"") {
+                            let rest = &line[start+7..];
+                            if let Some(path_start) = rest.find('"') {
+                                let path = &rest[path_start+1..];
+                                if let Some(path_end) = path.find('"') {
+                                    let lib = format!("{}\\steamapps\\common", &path[..path_end].replace("\\\\", "\\"));
+                                    if let Ok(entries) = std::fs::read_dir(&lib) {
+                                        for entry in entries.flatten() {
+                                            let n = entry.file_name().to_string_lossy().to_string();
+                                            if !n.starts_with('.') && !n.to_lowercase().contains("steamworks") {
+                                                games.push(InstalledGame { name: n, exe_path: entry.path().to_string_lossy().to_string(), source: "steam".to_string() });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

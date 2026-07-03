@@ -104,15 +104,8 @@ function HomeView() {
             .filter((n: any) => n.region === savedRegion && n.latency_ms !== null)
             .sort((a: any, b: any) => a.latency_ms - b.latency_ms)[0];
 
-          // Auto-select Steam and connect
+          // Auto-select Steam but don't auto-connect
           useAppStore.getState().setSelectedGame({ name: 'Steam', exe_path: '', source: 'builtin' });
-          if (best) {
-            try {
-              await invoke('start_proxy', { node: best });
-              useAppStore.getState().setConnected(true);
-              useAppStore.getState().setCurrentNode(best);
-            } catch {}
-          }
         } catch {}
       }
     })();

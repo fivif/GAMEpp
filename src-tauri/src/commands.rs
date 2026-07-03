@@ -84,7 +84,7 @@ pub async fn start_proxy(
 
     // Find sing-box binary - REQUIRED
     let sb_path = find_singbox()
-        .ok_or_else(|| "sing-box not found. Install: brew install sing-box".to_string())?;
+        .ok_or_else(|| singbox_download_guide())?;
 
     // Start sing-box with stderr capture for debugging
     let stderr_file = std::env::temp_dir().join("gamepp-singbox-err.log");
@@ -246,38 +246,32 @@ pub async fn save_persistent_config(config: crate::proxy::config::AppConfig) -> 
     crate::proxy::config::save_config(&config).map_err(|e| e.to_string())
 }
 
-/// Try to find sing-box binary in common locations
+/// Try to find sing-box binary
 fn find_singbox() -> Option<String> {
-    // Check if sing-box is in PATH
-    if std::process::Command::new("sing-box")
-        .arg("version")
-        .output()
-        .is_ok()
-    {
+    if std::process::Command::new("sing-box").arg("version").output().is_ok() {
         return Some("sing-box".to_string());
     }
-
-    // Check common locations
-    let candidates = [
-        // Same directory as the app
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.join("sing-box")))
-            .and_then(|p| Some(p.to_string_lossy().to_string())),
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.join("sing-box.exe")))
-            .and_then(|p| Some(p.to_string_lossy().to_string())),
-        // Homebrew on macOS
-        Some("/opt/homebrew/bin/sing-box".to_string()),
-        Some("/usr/local/bin/sing-box".to_string()),
-    ];
-
-    for candidate in candidates.into_iter().flatten() {
-        if std::path::Path::new(&candidate).exists() {
-            return Some(candidate);
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            #[cfg(target_os = "windows")]
+            let name = "sing-box.exe";
+            #[cfg(not(target_os = "windows"))]
+            let name = "sing-box";
+            let bundled = dir.join(name);
+            if bundled.exists() { return Some(bundled.to_string_lossy().to_string()); }
         }
     }
-
+    #[cfg(target_os = "macos")]
+    for p in ["/opt/homebrew/bin/sing-box", "/usr/local/bin/sing-box"] {
+        if std::path::Path::new(p).exists() { return Some(p.to_string()); }
+    }
     None
+}
+
+fn singbox_download_guide() -> String {
+    if cfg!(target_os = "windows") {
+        "sing-box not found.\nDownload: https://github.com/SagerNet/sing-box/releases\nPut sing-box.exe next to GAME++.exe".into()
+    } else {
+        "sing-box not found.\nInstall: brew install sing-box".into()
+    }
 }
