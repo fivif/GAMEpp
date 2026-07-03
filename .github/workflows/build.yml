@@ -16,6 +16,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
+      - name: Download sing-box for bundling
+        run: |
+          mkdir -p src-tauri\resources
+          curl -sL "https://github.com/SagerNet/sing-box/releases/download/v1.13.14/sing-box-1.13.14-windows-amd64.zip" -o sing-box.zip
+          7z x sing-box.zip -osing-box-tmp -y
+          Get-ChildItem -Path sing-box-tmp -Recurse -Filter sing-box.exe | ForEach-Object { Copy-Item $_.FullName src-tauri\sing-box.exe -Force }
+          Write-Host "sing-box.exe copied to src-tauri\"
+          Get-ChildItem src-tauri\sing-box.exe
+        shell: pwsh
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,6 +41,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
+      - name: Download sing-box for bundling
+        run: |
+          curl -sL "https://github.com/SagerNet/sing-box/releases/download/v1.13.14/sing-box-1.13.14-darwin-arm64.tar.gz" -o sing-box.tar.gz
+          mkdir -p sing-box-tmp && tar xzf sing-box.tar.gz -C sing-box-tmp
+          find sing-box-tmp -name sing-box -type f -exec cp {} src-tauri/sing-box \;
+          chmod +x src-tauri/sing-box
+          ls -la src-tauri/sing-box
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
