@@ -1,5 +1,12 @@
 name: Build
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   windows:
@@ -13,6 +20,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'GAME++ v0.1.0'
+          prerelease: false
           args: --target x86_64-pc-windows-msvc
 
   macos:
@@ -25,3 +35,7 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'GAME++ v0.1.0'
+          prerelease: false
