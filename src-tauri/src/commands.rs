@@ -91,13 +91,21 @@ pub async fn start_proxy(
     let stderr = std::fs::File::create(&stderr_file)
         .map_err(|e| format!("Cannot create log: {}", e))?;
 
-    let child = std::process::Command::new(&sb_path)
-        .args(["run", "-c", config_path.to_str().unwrap()])
+    let mut cmd = std::process::Command::new(&sb_path);
+    cmd.args(["run", "-c", config_path.to_str().unwrap()])
         .env("ENABLE_DEPRECATED_LEGACY_DNS_SERVERS", "true")
         .env("ENABLE_DEPRECATED_MISSING_DOMAIN_RESOLVER", "true")
         .stdout(std::process::Stdio::null())
-        .stderr(stderr)
-        .spawn()
+        .stderr(stderr);
+
+    // Hide console window on Windows
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    let child = cmd.spawn()
         .map_err(|e| format!("Launch sing-box failed: {} (path: {})", e, sb_path))?;
 
     {
