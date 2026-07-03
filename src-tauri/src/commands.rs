@@ -246,7 +246,7 @@ pub async fn save_persistent_config(config: crate::proxy::config::AppConfig) -> 
     crate::proxy::config::save_config(&config).map_err(|e| e.to_string())
 }
 
-/// Try to find sing-box binary
+/// Try to find sing-box binary (PATH → bundled resource → system)
 fn find_singbox() -> Option<String> {
     if std::process::Command::new("sing-box").arg("version").output().is_ok() {
         return Some("sing-box".to_string());
@@ -257,8 +257,17 @@ fn find_singbox() -> Option<String> {
             let name = "sing-box.exe";
             #[cfg(not(target_os = "windows"))]
             let name = "sing-box";
+
+            // Check next to the exe (Windows) or in Resources (macOS .app)
             let bundled = dir.join(name);
             if bundled.exists() { return Some(bundled.to_string_lossy().to_string()); }
+
+            // macOS: check ../Resources/ (inside .app bundle)
+            #[cfg(target_os = "macos")]
+            {
+                let resources = dir.join("../Resources").join(name);
+                if resources.exists() { return Some(resources.to_string_lossy().to_string()); }
+            }
         }
     }
     #[cfg(target_os = "macos")]
